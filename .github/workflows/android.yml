@@ -24,6 +24,21 @@ jobs:
         with:
           gradle-version: 8.5
 
+      - name: Insert built-in AI key from secret
+        env:
+          BUILTIN_AI_KEY: ${{ secrets.BUILTIN_AI_KEY }}
+          BUILTIN_AI_PROVIDER: ${{ secrets.BUILTIN_AI_PROVIDER }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          key = os.environ.get("BUILTIN_AI_KEY", "").strip()
+          prov = os.environ.get("BUILTIN_AI_PROVIDER", "").strip() or ("gemini" if key.startswith("AIza") else "claude")
+          cfg = {"provider": prov, "key": key, "model": "claude-haiku-5-5"}
+          with open("android/app/src/main/assets/www/config.js", "w") as f:
+              f.write("var BUILTIN = " + json.dumps(cfg) + ";\n")
+          print("built-in key:", "set" if key else "not set", "| provider:", prov)
+          PY
+
       - name: Build APK
         run: |
           cd android

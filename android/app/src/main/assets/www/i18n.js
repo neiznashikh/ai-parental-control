@@ -1,6 +1,7 @@
 // Тексты интерфейса на трёх языках: ru, kk, en
 var I18N = {
   ru: {
+    builtinKey: "Встроенный ключ ИИ уже работает — ничего вводить не нужно. Свой ключ можно указать ниже (необязательно).",
     knowledgeMap: "Карта знаний", knowledgeMapHint: "Вероятность того, что навык освоен, по модели Bayesian Knowledge Tracing (BKT).",
     masteryGrowth: "Рост освоения", attemptsShort: "попыток", activity7d: "Выполнено заданий за 7 дней",
     modelQuality: "Качество модели прогноза", modelQualityHint: "Модель обучена на первых {train} попытках и проверена на последних {test}, которых она не видела.",
@@ -19,7 +20,7 @@ var I18N = {
     welcome: "Добро пожаловать!",
     welcomeText: "Learn2Unlock AI блокирует игры и соцсети, пока ребёнок не выполнит задание. Задания готовит и проверяет ИИ под уровень и интересы ребёнка.",
     chooseLang: "Язык интерфейса",
-    setPin: "PIN-код родителя", pinHint: "4–6 цифр. Ребёнок не должен его знать.",
+    setPin: "PIN-код родителя", pinHint: "PIN родителя: 4 цифры. Ребёнок не должен его знать.",
     pinRepeat: "Повторите PIN", pinMismatch: "PIN-коды не совпадают", pinShort: "Минимум 4 цифры",
     childProfile: "Профиль ребёнка", childName: "Имя", age: "Возраст", grade: "Класс",
     interests: "Интересы", interestsHint: "Например: футбол, Minecraft, динозавры, космос",
@@ -83,6 +84,7 @@ var I18N = {
     history: "История", score: "Балл"
   },
   kk: {
+    builtinKey: "Кірістірілген ЖИ кілті жұмыс істеп тұр — ештеңе енгізудің қажеті жоқ. Өз кілтіңізді төменде көрсетуге болады (міндетті емес).",
     knowledgeMap: "Білім картасы", knowledgeMapHint: "Bayesian Knowledge Tracing (BKT) моделі бойынша дағдының меңгерілу ықтималдығы.",
     masteryGrowth: "Меңгерудің өсуі", attemptsShort: "әрекет", activity7d: "7 күнде орындалған тапсырмалар",
     modelQuality: "Болжам моделінің сапасы", modelQualityHint: "Модель алғашқы {train} әрекетте оқытылып, ол көрмеген соңғы {test} әрекетте тексерілді.",
@@ -101,7 +103,7 @@ var I18N = {
     welcome: "Қош келдіңіз!",
     welcomeText: "Learn2Unlock AI бала тапсырманы орындағанша ойындар мен әлеуметтік желілерді бұғаттайды. Тапсырмаларды ЖИ баланың деңгейі мен қызығушылығына қарай дайындап, тексереді.",
     chooseLang: "Интерфейс тілі",
-    setPin: "Ата-ана PIN-коды", pinHint: "4–6 сан. Бала оны білмеуі керек.",
+    setPin: "Ата-ана PIN-коды", pinHint: "Ата-ана PIN-коды: 4 сан. Бала оны білмеуі керек.",
     pinRepeat: "PIN-кодты қайталаңыз", pinMismatch: "PIN-кодтар сәйкес емес", pinShort: "Кемінде 4 сан",
     childProfile: "Бала профилі", childName: "Аты", age: "Жасы", grade: "Сыныбы",
     interests: "Қызығушылықтары", interestsHint: "Мысалы: футбол, Minecraft, динозаврлар, ғарыш",
@@ -165,6 +167,7 @@ var I18N = {
     history: "Тарих", score: "Балл"
   },
   en: {
+    builtinKey: "A built-in AI key is already active — nothing to enter. You can add your own key below (optional).",
     knowledgeMap: "Knowledge map", knowledgeMapHint: "Probability that each skill is mastered, from the Bayesian Knowledge Tracing (BKT) model.",
     masteryGrowth: "Mastery growth", attemptsShort: "attempts", activity7d: "Tasks completed, last 7 days",
     modelQuality: "Prediction model quality", modelQualityHint: "Trained on the first {train} attempts and tested on the last {test}, which it never saw.",
@@ -183,7 +186,7 @@ var I18N = {
     welcome: "Welcome!",
     welcomeText: "Learn2Unlock AI blocks games and social apps until your child completes a task. The AI creates and checks tasks for the child's level and interests.",
     chooseLang: "Interface language",
-    setPin: "Parent PIN", pinHint: "4–6 digits. Keep it secret from the child.",
+    setPin: "Parent PIN", pinHint: "Parent PIN: 4 digits. Keep it secret from the child.",
     pinRepeat: "Repeat PIN", pinMismatch: "PINs don't match", pinShort: "At least 4 digits",
     childProfile: "Child profile", childName: "Name", age: "Age", grade: "Grade",
     interests: "Interests", interestsHint: "e.g. football, Minecraft, dinosaurs, space",

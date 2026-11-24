@@ -166,7 +166,7 @@
     if (screen !== "parent" && screen !== "pin" && state.setupDone) { screen = "home"; render(); }
   };
   window.onAppResume = function () {
-    if (!state.setupDone && setupStep === 5) render();
+    if (!state.setupDone && setupSteps()[setupStep] === "perm") render();
     else if (screen === "parent" && (parentTab === "protect")) render();
     else if (screen === "home") render();
   };
@@ -207,29 +207,38 @@
   acts.openInfo = function () { if (NA) { NA.setParentMinutes(15); NA.openAppInfo(); } };
   acts.mic = function () { if (NA) { window.onMicPermission = function () { render(); }; NA.requestMic(); } };
 
+  // Упрощённая первая настройка: 3–4 шага. Шаг с ключом ИИ — только если нет встроенного ключа.
+  function setupSteps() {
+    var st = ["welcome", "child"];
+    if (!AI.hasBuiltin()) st.push("ai");
+    st.push("perm", "apps");
+    return st;
+  }
   function renderSetup() {
     screen = "setup";
     if (NA) NA.setParentMinutes(30);
-    var body = "", n = 7;
-    if (setupStep === 0) {
+    var steps = setupSteps(), n = steps.length;
+    if (setupStep >= n) setupStep = n - 1;
+    var step = steps[setupStep], body = "";
+    if (step === "welcome") {
       body = '<h2>' + t("welcome") + '</h2><p>' + t("welcomeText") + '</p>' +
         '<label class="f">' + t("chooseLang") + '</label>' + chips("uiLang", LANGS, [state.uiLang], langLabel) +
-        '<div style="margin-top:16px"><button class="btn" data-act="setupNext">' + t("next") + '</button></div>';
-    } else if (setupStep === 1) {
-      body = '<h2>' + t("setPin") + '</h2><p class="muted">' + t("pinHint") + '</p>' +
-        '<input id="pin1" type="password" inputmode="numeric" maxlength="6" class="pin">' +
-        '<label class="f">' + t("pinRepeat") + '</label><input id="pin2" type="password" inputmode="numeric" maxlength="6" class="pin">' +
-        '<div style="margin-top:16px"><button class="btn" data-act="setupPin">' + t("next") + '</button></div>';
-    } else if (setupStep === 2) {
-      body = '<h2>' + t("childProfile") + '</h2>' + profileForm() +
-        '<div style="margin-top:16px"><button class="btn" data-act="setupProfile">' + t("next") + '</button></div>';
-    } else if (setupStep === 3) {
-      body = '<h2>' + t("taskTypes") + '</h2>' + tasksForm(false) +
-        '<div style="margin-top:16px"><button class="btn" data-act="setupTasks">' + t("next") + '</button></div>';
-    } else if (setupStep === 4) {
+        '<div style="margin-top:16px"><button class="btn" data-act="setupNext">' + t("start") + '</button></div>';
+    } else if (step === "child") {
+      var p = state.profile;
+      body = '<h2>' + t("childProfile") + '</h2>' +
+        '<label class="f">' + t("childName") + '</label><input id="pName" type="text" value="' + esc(p.name) + '">' +
+        '<label class="f">' + t("age") + '</label><div class="chips">' + [6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(function (a) {
+          return '<button class="chip' + (p.age === a ? " on" : "") + '" data-act="pickAge" data-arg="' + a + '">' + a + '</button>';
+        }).join("") + '</div>' +
+        '<label class="f">' + t("interests") + '</label><input id="pInt" type="text" placeholder="' + esc(t("interestsHint")) + '" value="' + esc(p.interests) + '">' +
+        '<label class="f">' + t("setPin") + '</label><input id="pin1" type="tel" inputmode="numeric" maxlength="6" class="pin" value="' + esc(state.pin) + '">' +
+        '<div class="muted" style="font-size:13px;margin-top:4px">' + t("pinHint") + '</div>' +
+        '<div style="margin-top:16px"><button class="btn" data-act="setupChild">' + t("next") + '</button></div>';
+    } else if (step === "ai") {
       body = '<h2>' + t("apiKey") + '</h2>' + aiForm() +
         '<div style="margin-top:16px"><button class="btn" data-act="setupKey">' + t("next") + '</button></div>';
-    } else if (setupStep === 5) {
+    } else if (step === "perm") {
       body = '<h2>' + t("permissions") + '</h2>' + permBlock() +
         '<div style="margin-top:16px"><button class="btn" data-act="setupNext">' + t("next") + '</button></div>';
     } else {
@@ -241,14 +250,21 @@
       '<div class="wrap"><div class="card">' + body + '</div></div>');
   }
   acts.setupNext = function () { setupStep++; render(); };
-  acts.setupPin = function () {
-    var a = $("pin1").value.trim(), b = $("pin2").value.trim();
-    if (!/^\d{4,6}$/.test(a)) return toast(t("pinShort"));
-    if (a !== b) return toast(t("pinMismatch"));
-    state.pin = a; save(); setupStep++; render();
+  acts.pickAge = function (a) {
+    if ($("pName")) state.profile.name = $("pName").value.trim();
+    if ($("pInt")) state.profile.interests = $("pInt").value.trim();
+    if ($("pin1")) state.pin = $("pin1").value.trim();
+    var age = parseInt(a, 10);
+    state.profile.age = age; state.profile.grade = Math.max(0, Math.min(11, age - 6));
+    save(); render();
   };
-  acts.setupProfile = function () { readProfile(); setupStep++; render(); };
-  acts.setupTasks = function () { readTasks(); setupStep++; render(); };
+  acts.setupChild = function () {
+    var p = state.profile;
+    p.name = $("pName").value.trim(); p.interests = $("pInt").value.trim();
+    var pin = $("pin1").value.trim();
+    if (!/^\d{4,6}$/.test(pin)) return toast(t("pinShort"));
+    state.pin = pin; save(); setupStep++; render();
+  };
   acts.setupKey = function () { readAI(); setupStep++; render(); };
   acts.setupFinish = function () {
     state.setupDone = true; save();
@@ -299,9 +315,10 @@
     if ($("tMin")) state.minutes = Math.min(240, Math.max(1, parseInt($("tMin").value, 10) || 20));
     save();
   }
-  function hasKey() { return state.provider === "gemini" ? !!state.geminiKey : !!state.apiKey; }
+  function hasKey() { return AI.hasBuiltin() || (state.provider === "gemini" ? !!state.geminiKey : !!state.apiKey); }
   function aiForm() {
-    var html = '<label class="f">' + t("provider") + '</label>' +
+    var html = (AI.hasBuiltin() ? '<div class="okbox" style="margin-bottom:10px">' + t("builtinKey") + '</div>' : '') +
+      '<label class="f">' + t("provider") + '</label>' +
       chips("provider", ["claude", "gemini"], [state.provider], function (x) { return x === "claude" ? "Claude" : "Gemini"; });
     if (state.provider === "gemini") {
       html += '<p class="muted">' + t("geminiKeyHint") + '</p><div class="warn">' + t("geminiPrivacy") + '</div>' +

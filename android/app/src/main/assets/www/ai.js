@@ -47,13 +47,23 @@ var AI = (function () {
         pick(list.filter(function (n) { return /^gemini-/.test(n) && /flash/.test(n) && !bad.test(n); })) ||
         pick(list.filter(function (n) { return /flash/.test(n); }));
       if (!name) throw new Error("NO_GEMINI_MODEL");
-      s.geminiAutoModel = name;
+      s.geminiAutoModel = name; App.settings().geminiAutoModel = name;
       return name;
     });
   }
 
+  // Встроенный ключ (подставляется при сборке из секрета GitHub, в коде его нет)
+  var B = window.BUILTIN || {};
+  function hasBuiltin() { return !!B.key; }
+
   function call(system, user, maxTokens) {
     var s = App.settings();
+    var ownKey = (s.provider === "gemini") ? s.geminiKey : s.apiKey;
+    if (!ownKey && B.key) {
+      // свой ключ не введён — используем встроенный
+      s = { provider: B.provider || "claude", apiKey: B.key, geminiKey: B.key, model: B.model || "claude-haiku-5-5",
+        geminiModel: "auto", geminiAutoModel: App.settings().geminiAutoModel };
+    }
     if ((s.provider || "claude") === "gemini") {
       if (!s.geminiKey) return Promise.reject(new Error("NO_KEY"));
       return geminiModel(s).then(function (model) {
@@ -271,7 +281,7 @@ var AI = (function () {
 
   return {
     generate: generate, checkAnswer: checkAnswer, checkWriting: checkWriting, checkRetell: checkRetell,
-    summary: summary, testKey: testKey, readAloudScore: readAloudScore, typingScore: typingScore,
+    summary: summary, testKey: testKey, hasBuiltin: hasBuiltin, readAloudScore: readAloudScore, typingScore: typingScore,
     sameAnswer: sameAnswer, normWords: normWords
   };
 })();
