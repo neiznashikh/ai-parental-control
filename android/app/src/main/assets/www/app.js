@@ -1028,7 +1028,8 @@
   acts.summary = function () {
     var box = $("sumBox");
     box.innerHTML = '<div class="spinner"></div>';
-    var lines = [ "Профиль: " + JSON.stringify(state.profile) ];
+    var pr = state.profile; // без имени: в ИИ уходят только возраст, класс и интересы
+    var lines = [ "Профиль ребёнка: возраст " + pr.age + ", класс " + pr.grade + ", интересы: " + (pr.interests || "-") ];
     TYPES.forEach(function (x) {
       var s = state.stats[x];
       if (s.total) lines.push(x + ": уровень " + s.level + "/10, выполнено " + s.passed + " из " + s.total + ". Ошибки: " + s.mistakes.join("; "));
