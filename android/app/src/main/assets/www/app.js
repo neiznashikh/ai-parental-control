@@ -4,7 +4,7 @@
   var TYPES = ["math", "logic", "read_aloud", "retell", "typing", "writing", "language"];
   var LANGS = ["ru", "kk", "en"];
   var SPEECH_CODES = { ru: "ru-RU", kk: "kk-KZ", en: "en-US" };
-  var MODELS = ["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"];
+  var MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"];
 
   // ---------- состояние ----------
   function defaults() {

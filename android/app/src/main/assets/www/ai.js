@@ -61,7 +61,9 @@ var AI = (function () {
     var ownKey = (s.provider === "gemini") ? s.geminiKey : s.apiKey;
     if (!ownKey && B.key) {
       // свой ключ не введён — используем встроенный
-      s = { provider: B.provider || "claude", apiKey: B.key, geminiKey: B.key, model: B.model || "claude-haiku-5-5",
+      // модель берётся из настроек родителя (по умолчанию Haiku)
+      var m = (B.provider || "claude") === "claude" ? (s.model || B.model || "claude-haiku-5-5") : B.model;
+      s = { provider: B.provider || "claude", apiKey: B.key, geminiKey: B.key, model: m,
         geminiModel: "auto", geminiAutoModel: App.settings().geminiAutoModel };
     }
     if ((s.provider || "claude") === "gemini") {

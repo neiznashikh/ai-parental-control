@@ -11,8 +11,8 @@ android {
         applicationId "com.aiparental.control"
         minSdk 24
         targetSdk 33
-        versionCode 6
-        versionName "1.3"
+        versionCode 7
+        versionName "1.3.1"
     }
 
     // Постоянный ключ подписи: новые версии ставятся поверх старой, данные сохраняются
