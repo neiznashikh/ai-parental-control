@@ -222,6 +222,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun httpRequest(method: String, url: String, headers: JSONObject, body: String): Pair<Int, String> {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = method
+            conn.connectTimeout = 20000
+            conn.readTimeout = 120000
+            val keys = headers.keys()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                conn.setRequestProperty(k, headers.getString(k))
+            }
+            if (method == "POST") {
+                conn.doOutput = true
+                conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            }
+            val code = conn.responseCode
+            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+            val text = if (stream == null) "" else
+                BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).use { it.readText() }
+            return Pair(code, text)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     // ---------- Мост для JavaScript ----------
 
     inner class Bridge {
@@ -376,6 +401,19 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun stopListening() {
             runOnUiThread { stopSpeech() }
+        }
+
+        @JavascriptInterface
+        fun http(id: Int, method: String, url: String, headersJson: String, body: String) {
+            Thread {
+                val payload: String = try {
+                    val (code, text) = httpRequest(method, url, JSONObject(headersJson), body)
+                    JSONObject().put("status", code).put("body", text).toString()
+                } catch (e: Exception) {
+                    JSONObject().put("status", 0).put("body", e.toString()).toString()
+                }
+                js("window.__claudeCb && window.__claudeCb($id, ${JSONObject.quote(payload)})")
+            }.start()
         }
 
         @JavascriptInterface

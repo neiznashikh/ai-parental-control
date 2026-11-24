@@ -1,6 +1,10 @@
 // Тексты интерфейса на трёх языках: ru, kk, en
 var I18N = {
   ru: {
+    provider: "Какой ИИ использовать",
+    geminiKeyHint: "Бесплатный ключ: aistudio.google.com → Get API key. Бесплатный тариф имеет лимит запросов в день.",
+    geminiPrivacy: "На бесплатном тарифе Google может использовать отправленные тексты (задания и ответы ребёнка) для улучшения своих продуктов. Не пишите в профиль лишних личных данных.",
+    geminiModelHint: "auto — приложение само выберет бесплатную модель Flash",
     next: "Далее", back: "Назад", save: "Сохранить", cancel: "Отмена", start: "Начать",
     retry: "Повторить", loading: "Загрузка…", error: "Ошибка", min: "мин", ok: "Понятно",
     welcome: "Добро пожаловать!",
@@ -11,7 +15,7 @@ var I18N = {
     childProfile: "Профиль ребёнка", childName: "Имя", age: "Возраст", grade: "Класс",
     interests: "Интересы", interestsHint: "Например: футбол, Minecraft, динозавры, космос",
     taskLangs: "На каких языках давать задания", learnLangs: "Какие языки ребёнок изучает",
-    apiKey: "Ключ Claude API",
+    apiKey: "Ключ ИИ (API)",
     apiKeyHint: "Ключ создаётся на console.anthropic.com → API Keys. Советуем поставить там месячный лимит расходов.",
     apiTest: "Проверить ключ", apiOk: "Ключ работает ✓", apiBad: "Ключ не работает",
     permissions: "Разрешения",
@@ -70,6 +74,10 @@ var I18N = {
     history: "История", score: "Балл"
   },
   kk: {
+    provider: "Қай ЖИ қолданылады",
+    geminiKeyHint: "Тегін кілт: aistudio.google.com → Get API key. Тегін тарифте күндік сұраныс шегі бар.",
+    geminiPrivacy: "Тегін тарифте Google жіберілген мәтіндерді (тапсырмалар мен баланың жауаптарын) өз өнімдерін жақсарту үшін пайдалануы мүмкін. Профильге артық жеке деректер жазбаңыз.",
+    geminiModelHint: "auto — қолданба тегін Flash моделін өзі таңдайды",
     next: "Әрі қарай", back: "Артқа", save: "Сақтау", cancel: "Болдырмау", start: "Бастау",
     retry: "Қайталау", loading: "Жүктелуде…", error: "Қате", min: "мин", ok: "Түсінікті",
     welcome: "Қош келдіңіз!",
@@ -80,7 +88,7 @@ var I18N = {
     childProfile: "Бала профилі", childName: "Аты", age: "Жасы", grade: "Сыныбы",
     interests: "Қызығушылықтары", interestsHint: "Мысалы: футбол, Minecraft, динозаврлар, ғарыш",
     taskLangs: "Тапсырмалар қай тілдерде берілсін", learnLangs: "Бала қай тілдерді үйренеді",
-    apiKey: "Claude API кілті",
+    apiKey: "ЖИ кілті (API)",
     apiKeyHint: "Кілт console.anthropic.com → API Keys бөлімінде жасалады. Сол жерде айлық шығын шегін қоюды ұсынамыз.",
     apiTest: "Кілтті тексеру", apiOk: "Кілт жұмыс істейді ✓", apiBad: "Кілт жұмыс істемейді",
     permissions: "Рұқсаттар",
@@ -139,6 +147,10 @@ var I18N = {
     history: "Тарих", score: "Балл"
   },
   en: {
+    provider: "Which AI to use",
+    geminiKeyHint: "Free key: aistudio.google.com → Get API key. The free tier has a daily request limit.",
+    geminiPrivacy: "On the free tier Google may use the texts sent (tasks and the child's answers) to improve its products. Don't put unnecessary personal data in the profile.",
+    geminiModelHint: "auto — the app picks a free Flash model itself",
     next: "Next", back: "Back", save: "Save", cancel: "Cancel", start: "Start",
     retry: "Retry", loading: "Loading…", error: "Error", min: "min", ok: "Got it",
     welcome: "Welcome!",
@@ -149,7 +161,7 @@ var I18N = {
     childProfile: "Child profile", childName: "Name", age: "Age", grade: "Grade",
     interests: "Interests", interestsHint: "e.g. football, Minecraft, dinosaurs, space",
     taskLangs: "Languages for tasks", learnLangs: "Languages the child is learning",
-    apiKey: "Claude API key",
+    apiKey: "AI key (API)",
     apiKeyHint: "Create a key at console.anthropic.com → API Keys. We recommend setting a monthly spend limit there.",
     apiTest: "Test key", apiOk: "Key works ✓", apiBad: "Key doesn't work",
     permissions: "Permissions",

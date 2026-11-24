@@ -13,7 +13,8 @@
     var types = {};
     TYPES.forEach(function (t) { types[t] = true; });
     return {
-      setupDone: false, uiLang: "ru", pin: "", apiKey: "", model: "claude-sonnet-5-5",
+      setupDone: false, uiLang: "ru", pin: "", apiKey: "", model: "claude-haiku-5-5",
+      provider: "claude", geminiKey: "", geminiModel: "auto", geminiAutoModel: "",
       profile: { name: "", age: 10, grade: 4, interests: "" },
       taskLangs: ["ru"], learnLangs: ["en"], types: types,
       minutes: 20, tasksPer: 3, dailyLimit: 120,
@@ -168,6 +169,7 @@
   acts.chip = function (arg) {
     var p = arg.split(":"), name = p[0], v = p[1];
     if (name === "uiLang") { state.uiLang = v; save(); render(); return; }
+    if (name === "provider") { if ($("aKey") || $("gKey")) readAI(); state.provider = v; save(); render(); return; }
     if (name === "types") { state.types[v] = !state.types[v]; save(); render(); return; }
     var arr = state[name], i = arr.indexOf(v);
     if (i >= 0) { if (arr.length > 1 || name === "learnLangs") arr.splice(i, 1); } else arr.push(v);
@@ -283,24 +285,39 @@
     if ($("tMin")) state.minutes = Math.min(240, Math.max(1, parseInt($("tMin").value, 10) || 20));
     save();
   }
+  function hasKey() { return state.provider === "gemini" ? !!state.geminiKey : !!state.apiKey; }
   function aiForm() {
-    return '<p class="muted">' + t("apiKeyHint") + '</p>' +
-      '<input id="aKey" type="password" placeholder="sk-ant-..." value="' + esc(state.apiKey) + '">' +
-      '<label class="f">' + t("model") + '</label><select id="aModel">' + MODELS.map(function (m) {
-        return '<option value="' + m + '"' + (state.model === m ? " selected" : "") + '>' + m + '</option>';
-      }).join("") + '</select><div class="muted" style="margin-top:6px">' + t("modelHint") + '</div>' +
-      '<div style="margin-top:12px"><button class="btn2" data-act="testKey">' + t("apiTest") + '</button></div><div id="keyRes"></div>';
+    var html = '<label class="f">' + t("provider") + '</label>' +
+      chips("provider", ["claude", "gemini"], [state.provider], function (x) { return x === "claude" ? "Claude" : "Gemini"; });
+    if (state.provider === "gemini") {
+      html += '<p class="muted">' + t("geminiKeyHint") + '</p><div class="warn">' + t("geminiPrivacy") + '</div>' +
+        '<label class="f">' + t("apiKey") + ' (Gemini)</label><input id="gKey" type="password" placeholder="AIza..." value="' + esc(state.geminiKey) + '">' +
+        '<label class="f">' + t("model") + '</label><input id="gModel" type="text" value="' + esc(state.geminiModel || "auto") + '">' +
+        '<div class="muted" style="margin-top:6px">' + t("geminiModelHint") + (state.geminiAutoModel ? ' → ' + esc(state.geminiAutoModel) : '') + '</div>';
+    } else {
+      html += '<p class="muted">' + t("apiKeyHint") + '</p>' +
+        '<label class="f">' + t("apiKey") + ' (Claude)</label><input id="aKey" type="password" placeholder="sk-ant-..." value="' + esc(state.apiKey) + '">' +
+        '<label class="f">' + t("model") + '</label><select id="aModel">' + MODELS.map(function (m) {
+          return '<option value="' + m + '"' + (state.model === m ? " selected" : "") + '>' + m + '</option>';
+        }).join("") + '</select><div class="muted" style="margin-top:6px">' + t("modelHint") + '</div>';
+    }
+    return html + '<div style="margin-top:12px"><button class="btn2" data-act="testKey">' + t("apiTest") + '</button></div><div id="keyRes"></div>';
   }
   function readAI() {
-    state.apiKey = $("aKey").value.trim();
-    state.model = $("aModel").value;
+    if ($("aKey")) { state.apiKey = $("aKey").value.trim(); state.model = $("aModel").value; }
+    if ($("gKey")) {
+      var k = $("gKey").value.trim(), m = $("gModel").value.trim() || "auto";
+      if (k !== state.geminiKey || m !== state.geminiModel) state.geminiAutoModel = "";
+      state.geminiKey = k; state.geminiModel = m;
+    }
     save();
   }
   acts.testKey = function () {
     readAI();
     $("keyRes").innerHTML = '<div class="spinner"></div>';
-    AI.testKey().then(function () {
-      $("keyRes").innerHTML = '<div class="okbox" style="margin-top:10px">' + t("apiOk") + '</div>';
+    AI.testKey().then(function (model) {
+      save();
+      $("keyRes").innerHTML = '<div class="okbox" style="margin-top:10px">' + t("apiOk") + (model ? ' · ' + esc(model) : '') + '</div>';
     }).catch(function (e) {
       $("keyRes").innerHTML = '<div class="warn" style="margin-top:10px">' + t("apiBad") + ': ' + esc(e.message) + '</div>';
     });
@@ -395,7 +412,7 @@
   function ctx() { return { profile: state.profile, uiLang: state.uiLang }; }
 
   acts.startSession = function () {
-    if (!state.apiKey) return toast(t("noApiKey"));
+    if (!hasKey()) return toast(t("noApiKey"));
     if (state.dailyLimit - earnedToday() <= 0) return renderHome();
     session = { target: targetName(), done: 0, needed: state.tasksPer, task: null, next: null, finished: false, lastType: null };
     screen = "session";
@@ -410,6 +427,7 @@
     p.then(function (task) {
       if (!session) return;
       session.task = task;
+      save();
       session.phase = task.type === "retell" ? "read" : "answer";
       session.shownAt = Date.now();
       renderSessionScreen();

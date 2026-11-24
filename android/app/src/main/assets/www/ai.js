@@ -6,23 +6,73 @@ var AI = (function () {
     var cb = cbs[id];
     if (!cb) return;
     delete cbs[id];
-    try {
-      var p = JSON.parse(payload);
-      if (p.status >= 200 && p.status < 300) {
-        var data = JSON.parse(p.body);
-        var text = (data.content || []).filter(function (c) { return c.type === "text"; })
-          .map(function (c) { return c.text; }).join("");
-        cb.res(text);
-      } else {
-        var msg = "HTTP " + p.status;
-        try { msg += ": " + JSON.parse(p.body).error.message; } catch (e) { msg += " " + String(p.body).slice(0, 200); }
-        cb.rej(new Error(msg));
-      }
-    } catch (e) { cb.rej(e); }
+    try { cb.res(JSON.parse(payload)); } catch (e) { cb.rej(e); }
   };
+
+  // низкоуровневый HTTP-запрос через Android
+  function http(method, url, headers, body) {
+    return new Promise(function (res, rej) {
+      var id = ++seq;
+      cbs[id] = { res: res, rej: rej };
+      setTimeout(function () {
+        if (cbs[id]) { delete cbs[id]; rej(new Error("TIMEOUT")); }
+      }, 130000);
+      if (window.Android) Android.http(id, method, url, JSON.stringify(headers || {}), body || "");
+      else rej(new Error("NO_ANDROID"));
+    });
+  }
+
+  function httpError(p) {
+    var msg = "HTTP " + p.status;
+    try { var e = JSON.parse(p.body).error; msg += ": " + (e.message || JSON.stringify(e)); }
+    catch (x) { msg += " " + String(p.body).slice(0, 200); }
+    return new Error(msg);
+  }
+
+  var GEMINI = "https://generativelanguage.googleapis.com/v1beta/";
+
+  // выбор бесплатной модели Gemini Flash, если модель не указана
+  function geminiModel(s) {
+    if (s.geminiModel && s.geminiModel !== "auto") return Promise.resolve(s.geminiModel);
+    if (s.geminiAutoModel) return Promise.resolve(s.geminiAutoModel);
+    return http("GET", GEMINI + "models?pageSize=200", { "x-goog-api-key": s.geminiKey }).then(function (p) {
+      if (p.status < 200 || p.status >= 300) throw httpError(p);
+      var list = (JSON.parse(p.body).models || []).filter(function (m) {
+        return (m.supportedGenerationMethods || []).indexOf("generateContent") >= 0;
+      }).map(function (m) { return m.name.replace(/^models\//, ""); });
+      var bad = /(image|tts|live|audio|embed|vision|exp|preview|robotics|computer|native)/;
+      var ver = function (n) { var m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
+      var pick = function (arr) { return arr.sort(function (a, b) { return ver(b) - ver(a); })[0]; };
+      var name = pick(list.filter(function (n) { return /^gemini-/.test(n) && /flash/.test(n) && !/lite/.test(n) && !bad.test(n); })) ||
+        pick(list.filter(function (n) { return /^gemini-/.test(n) && /flash/.test(n) && !bad.test(n); })) ||
+        pick(list.filter(function (n) { return /flash/.test(n); }));
+      if (!name) throw new Error("NO_GEMINI_MODEL");
+      s.geminiAutoModel = name;
+      return name;
+    });
+  }
 
   function call(system, user, maxTokens) {
     var s = App.settings();
+    if ((s.provider || "claude") === "gemini") {
+      if (!s.geminiKey) return Promise.reject(new Error("NO_KEY"));
+      return geminiModel(s).then(function (model) {
+        var body = JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts: [{ text: user }] }]
+        });
+        return http("POST", GEMINI + "models/" + model + ":generateContent",
+          { "content-type": "application/json", "x-goog-api-key": s.geminiKey }, body);
+      }).then(function (p) {
+        if (p.status === 404) s.geminiAutoModel = "";
+        if (p.status < 200 || p.status >= 300) throw httpError(p);
+        var data = JSON.parse(p.body);
+        var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        var text = parts.filter(function (x) { return x.text && !x.thought; }).map(function (x) { return x.text; }).join("");
+        if (!text) throw new Error("EMPTY");
+        return text;
+      });
+    }
     if (!s.apiKey) return Promise.reject(new Error("NO_KEY"));
     var body = JSON.stringify({
       model: s.model || "claude-sonnet-5-5",
@@ -30,14 +80,13 @@ var AI = (function () {
       system: system,
       messages: [{ role: "user", content: user }]
     });
-    return new Promise(function (res, rej) {
-      var id = ++seq;
-      cbs[id] = { res: res, rej: rej };
-      setTimeout(function () {
-        if (cbs[id]) { delete cbs[id]; rej(new Error("TIMEOUT")); }
-      }, 130000);
-      if (window.Android) Android.callClaude(id, s.apiKey, body);
-      else rej(new Error("NO_ANDROID"));
+    return http("POST", "https://api.anthropic.com/v1/messages", {
+      "content-type": "application/json", "x-api-key": s.apiKey, "anthropic-version": "2023-06-01"
+    }, body).then(function (p) {
+      if (p.status < 200 || p.status >= 300) throw httpError(p);
+      var data = JSON.parse(p.body);
+      return (data.content || []).filter(function (c) { return c.type === "text"; })
+        .map(function (c) { return c.text; }).join("");
     });
   }
 
@@ -144,7 +193,11 @@ var AI = (function () {
   }
 
   function testKey() {
-    return call("Answer with one word.", "Say OK", 10);
+    var s = App.settings();
+    s.geminiAutoModel = "";
+    return call("Answer with one word.", "Say OK", 10).then(function () {
+      return (s.provider === "gemini") ? (s.geminiModel && s.geminiModel !== "auto" ? s.geminiModel : s.geminiAutoModel) : s.model;
+    });
   }
 
   // ---------- локальные проверки ----------
