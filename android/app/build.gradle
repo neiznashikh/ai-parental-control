@@ -11,13 +11,24 @@ android {
         applicationId "com.aiparental.control"
         minSdk 24
         targetSdk 33
-        versionCode 4
-        versionName "1.2.1"
+        versionCode 5
+        versionName "1.2.2"
+    }
+
+    // Постоянный ключ подписи: новые версии ставятся поверх старой, данные сохраняются
+    signingConfigs {
+        shared {
+            storeFile file("learn2unlock.keystore")
+            storePassword "learn2unlock"
+            keyAlias "learn2unlock"
+            keyPassword "learn2unlock"
+        }
     }
 
     buildTypes {
         debug {
             minifyEnabled false
+            signingConfig signingConfigs.shared
         }
     }
     compileOptions {
