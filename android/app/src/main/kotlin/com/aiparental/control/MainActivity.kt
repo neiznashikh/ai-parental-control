@@ -375,6 +375,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun shareText(subject: String, text: String) {
+            runOnUiThread {
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, subject)
+                    putExtra(Intent.EXTRA_TEXT, text)
+                }
+                val chooser = Intent.createChooser(send, subject)
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(chooser)
+            }
+        }
+
+        @JavascriptInterface
         fun toast(msg: String) {
             runOnUiThread { Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show() }
         }

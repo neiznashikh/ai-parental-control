@@ -18,7 +18,8 @@
       profile: { name: "", age: 10, grade: 4, interests: "" },
       taskLangs: ["ru"], learnLangs: ["en"], types: types,
       minutes: 20, tasksPer: 3, dailyLimit: 120,
-      stats: stats, history: [], recent: [], earned: { date: "", minutes: 0 }
+      stats: stats, history: [], recent: [], earned: { date: "", minutes: 0 },
+      ktParams: {}, mastery: {}, demoBackup: null
     };
   }
 
@@ -43,6 +44,19 @@
   }
 
   window.App = { settings: function () { return state; } };
+
+  // ---------- модель прогноза знаний ----------
+  function ktParam(type) { return state.ktParams[type] || KT.defaults(type); }
+  function mastery(type) {
+    if (state.mastery[type] == null) state.mastery[type] = ktParam(type).p0;
+    return state.mastery[type];
+  }
+  function refitModel() {
+    state.ktParams = KT.fitAll(state.history, TYPES);
+    var tr = KT.trace(state.history, state.ktParams, TYPES);
+    TYPES.forEach(function (x) { state.mastery[x] = tr[x].mastery; });
+    save();
+  }
 
   // ---------- утилиты ----------
   function t(key, vars) {
@@ -388,11 +402,8 @@
     if (list.length > 1 && session && session.lastType) {
       list = list.filter(function (x) { return x !== session.lastType; });
     }
-    var weights = list.map(function (x) {
-      var s = state.stats[x];
-      var fail = s.total >= 3 ? 1 - s.passed / s.total : 0.3;
-      return 1 + 2 * fail;
-    });
+    // чем ниже освоение навыка по модели BKT, тем чаще он выпадает
+    var weights = list.map(function (x) { return 1 + 3 * (1 - mastery(x)); });
     var sum = weights.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * sum;
     for (var i = 0; i < list.length; i++) { r -= weights[i]; if (r <= 0) return list[i]; }
     return list[list.length - 1];
@@ -687,6 +698,9 @@
   function finishTask(r) {
     var task = session.task, s = state.stats[task.type];
     if (r.score != null) r.score = Math.round(Number(r.score) || 0);
+    var pPred = KT.predict(mastery(task.type), ktParam(task.type));
+    var levelAt = s.level;
+    state.mastery[task.type] = KT.update(mastery(task.type), !!r.passed, ktParam(task.type));
     s.total++;
     if (r.passed) {
       s.passed++; s.streak++;
@@ -697,8 +711,10 @@
       var m = [r.skill, r.mistake].filter(Boolean).join(": ");
       if (m) { s.mistakes.push(m.slice(0, 160)); if (s.mistakes.length > 10) s.mistakes.shift(); }
     }
-    state.history.push({ t: Date.now(), type: task.type, lang: task.lang, title: task.title || "", passed: !!r.passed, score: r.score });
-    if (state.history.length > 300) state.history.shift();
+    state.history.push({ t: Date.now(), type: task.type, lang: task.lang, title: task.title || "", passed: !!r.passed,
+      score: r.score, level: levelAt, p: Math.round(pPred * 1000) / 1000, m: Math.round(state.mastery[task.type] * 1000) / 1000 });
+    if (state.history.length > 1000) state.history.shift();
+    if (state.history.length % 10 === 0) refitModel();
     state.recent.push((task.title || task.skill || "").slice(0, 60));
     if (state.recent.length > 15) state.recent.shift();
     save();
@@ -824,31 +840,174 @@
   };
   var confirmReset = false;
 
-  function reportView() {
-    var html = '<div class="card"><h2>' + t("tabReport") + '</h2>';
-    var any = false;
-    TYPES.forEach(function (x) {
-      var s = state.stats[x];
-      if (!s.total) return;
-      any = true;
-      html += '<h3>' + t("type_" + x) + ' <span class="lvl">· ' + t("level") + ' ' + s.level + '</span></h3>' +
-        '<div class="stat"><span>' + t("passed") + ' / ' + t("attempts") + '</span><b>' + s.passed + ' / ' + s.total +
-        ' (' + Math.round(s.passed * 100 / s.total) + '%)</b></div>' +
-        (s.mistakes.length ? '<div class="muted" style="margin-top:6px">' + t("recentMistakes") + ': ' + esc(s.mistakes.slice(-3).join(" · ")) + '</div>' : '');
+  // ---------- графики (SVG) ----------
+  var C_MAIN = "#4F46E5", C_SOFT = "#C7D2FE", C_GRID = "#E5E7EB", C_INK = "#6B7280";
+
+  function barsH(rows) { // горизонтальные столбики освоения 0..100%
+    var W = 320, rowH = 30, lab = 120, h = rows.length * rowH + 6;
+    var out = '<svg viewBox="0 0 ' + W + ' ' + h + '" width="100%" style="display:block">';
+    rows.forEach(function (r, i) {
+      var y = i * rowH + 6, bw = Math.max(4, (W - lab - 44) * r.v);
+      out += '<text x="0" y="' + (y + 15) + '" font-size="12" fill="#1F2937">' + esc(r.label) + '</text>' +
+        '<rect x="' + lab + '" y="' + (y + 3) + '" width="' + (W - lab - 44) + '" height="16" rx="4" fill="#F3F4F6"/>' +
+        '<rect x="' + lab + '" y="' + (y + 3) + '" width="' + bw + '" height="16" rx="4" fill="' + C_MAIN + '"><title>' + Math.round(r.v * 100) + '%</title></rect>' +
+        '<text x="' + (W - 2) + '" y="' + (y + 15) + '" font-size="12" text-anchor="end" fill="' + C_INK + '">' + Math.round(r.v * 100) + '%</text>';
     });
-    if (!any) html += '<p class="muted">' + t("noData") + '</p>';
-    html += '</div>';
-    if (any) {
-      html += '<div class="card"><h2>' + t("aiSummary") + '</h2><div id="sumBox"><button class="btn2" data-act="summary">✨ ' + t("aiSummary") + '</button></div></div>';
-      var last = state.history.slice(-15).reverse();
-      html += '<div class="card"><h2>' + t("history") + '</h2>' + last.map(function (h) {
-        var d = new Date(h.t);
-        return '<div class="stat"><span>' + (h.passed ? "✅" : "❌") + ' ' + esc(t("type_" + h.type)) + ' · ' + esc(h.title) + '</span>' +
-          '<span class="muted">' + d.getDate() + '.' + (d.getMonth() + 1) + ' ' + clock(h.t) + '</span></div>';
-      }).join("") + '</div>';
-    }
-    return html;
+    return out + '</svg>';
   }
+
+  function spark(curve) { // кривая освоения по попыткам
+    var W = 150, H = 34, n = curve.length;
+    if (n < 2) return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '"></svg>';
+    var pts = curve.map(function (v, i) {
+      return (2 + i * (W - 6) / (n - 1)).toFixed(1) + "," + (H - 3 - v * (H - 6)).toFixed(1);
+    });
+    var last = pts[n - 1].split(",");
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' +
+      '<line x1="0" x2="' + W + '" y1="' + (H - 3) + '" y2="' + (H - 3) + '" stroke="' + C_GRID + '"/>' +
+      '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + C_MAIN + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3.5" fill="' + C_MAIN + '" stroke="#fff" stroke-width="1.5"/></svg>';
+  }
+
+  function barsV(days) { // задания по дням
+    var W = 320, H = 130, base = H - 22, max = Math.max(1, Math.max.apply(null, days.map(function (d) { return d.v; })));
+    var bw = (W - 10) / days.length;
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block">' +
+      '<line x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '" stroke="' + C_GRID + '"/>';
+    days.forEach(function (d, i) {
+      var h = (base - 16) * d.v / max, x = 5 + i * bw + bw * 0.2, w = bw * 0.6;
+      if (d.v > 0) out += '<rect x="' + x + '" y="' + (base - h) + '" width="' + w + '" height="' + h + '" rx="4" fill="' + C_MAIN + '"><title>' + d.v + '</title></rect>' +
+        '<text x="' + (x + w / 2) + '" y="' + (base - h - 4) + '" font-size="11" text-anchor="middle" fill="' + C_INK + '">' + d.v + '</text>';
+      out += '<text x="' + (x + w / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle" fill="' + C_INK + '">' + d.label + '</text>';
+    });
+    return out + '</svg>';
+  }
+
+  function tile(label, value, sub) {
+    return '<div style="background:#F5F5FA;border-radius:12px;padding:10px"><div class="muted" style="font-size:12px">' + label +
+      '</div><div style="font-size:24px;font-weight:700">' + value + '</div>' + (sub ? '<div class="muted" style="font-size:12px">' + sub + '</div>' : '') + '</div>';
+  }
+
+  function reportView() {
+    var html = state.demoBackup ? '<div class="warn" style="margin-bottom:12px">' + t("demoBanner") + '</div>' : '';
+    var used = TYPES.filter(function (x) { return state.stats[x].total > 0; });
+    if (!used.length) {
+      return html + '<div class="card"><h2>' + t("tabReport") + '</h2><p class="muted">' + t("noData") + '</p></div>' + dataTools();
+    }
+    var tr = KT.trace(state.history, state.ktParams, TYPES);
+
+    // 1. карта знаний
+    html += '<div class="card"><h2>' + t("knowledgeMap") + '</h2><p class="muted">' + t("knowledgeMapHint") + '</p>' +
+      barsH(used.map(function (x) { return { label: t("type_" + x), v: mastery(x) }; })) + '</div>';
+
+    // 2. рост освоения
+    html += '<div class="card"><h2>' + t("masteryGrowth") + '</h2>' + used.map(function (x) {
+      var c = tr[x].curve;
+      return '<div class="stat" style="align-items:center"><span style="flex:1">' + t("type_" + x) + '<br><span class="lvl">' +
+        Math.round(c[0] * 100) + '% → ' + Math.round(c[c.length - 1] * 100) + '% · ' + tr[x].n + ' ' + t("attemptsShort") + '</span></span>' + spark(c) + '</div>';
+    }).join("") + '</div>';
+
+    // 3. активность за 7 дней
+    var days = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+      var from = d.getTime(), to = from + 86400000;
+      days.push({ label: d.getDate() + "." + (d.getMonth() + 1), v: state.history.filter(function (h) { return h.passed && h.t >= from && h.t < to; }).length });
+    }
+    html += '<div class="card"><h2>' + t("activity7d") + '</h2>' + barsV(days) + '</div>';
+
+    // 4. качество модели
+    var ev = KT.evaluate(state.history, TYPES);
+    html += '<div class="card"><h2>' + t("modelQuality") + '</h2>';
+    if (!ev) html += '<p class="muted">' + t("needMoreData", { n: state.history.length }) + '</p>';
+    else {
+      html += '<p class="muted">' + t("modelQualityHint", { train: ev.trainN, test: ev.n }) + '</p><div class="grid2">' +
+        tile(t("modelAcc"), Math.round(ev.accuracy * 100) + "%", "BKT") +
+        tile(t("baselineAcc"), Math.round(ev.baseline * 100) + "%", t("baselineHint")) +
+        tile("Log-loss", ev.logLoss.toFixed(2), "BKT") +
+        tile("Log-loss", ev.baseLogLoss.toFixed(2), t("baselineHint")) + '</div>';
+    }
+    html += '<h3>' + t("params") + '</h3><div style="overflow-x:auto"><table style="width:100%;font-size:13px;border-collapse:collapse">' +
+      '<tr style="color:#6B7280"><td></td><td>p0</td><td>T</td><td>S</td><td>G</td><td>n</td></tr>' +
+      used.map(function (x) {
+        var p = ktParam(x);
+        return '<tr style="border-top:1px solid #E5E7EB"><td style="padding:5px 0">' + t("type_" + x) + (p.fitted ? " ✓" : "") + '</td><td>' + p.p0 + '</td><td>' + p.T +
+          '</td><td>' + p.S + '</td><td>' + p.G + '</td><td>' + (p.n || state.stats[x].total) + '</td></tr>';
+      }).join("") + '</table></div><div class="muted" style="font-size:12px;margin-top:6px">' + t("paramsHint") + '</div>' +
+      '<div style="margin-top:10px"><button class="btn2" data-act="fit">🧠 ' + t("fitModel") + '</button></div></div>';
+
+    // 5. ИИ-анализ и история
+    html += '<div class="card"><h2>' + t("aiSummary") + '</h2><div id="sumBox"><button class="btn2" data-act="summary">✨ ' + t("aiSummary") + '</button></div></div>';
+    var last = state.history.slice(-15).reverse();
+    html += '<div class="card"><h2>' + t("history") + '</h2>' + last.map(function (h) {
+      var d = new Date(h.t);
+      return '<div class="stat"><span>' + (h.passed ? "✅" : "❌") + ' ' + esc(t("type_" + h.type)) + ' · ' + esc(h.title) + '</span>' +
+        '<span class="muted">' + d.getDate() + '.' + (d.getMonth() + 1) + ' ' + clock(h.t) + '</span></div>';
+    }).join("") + '</div>';
+    return html + dataTools();
+  }
+
+  function dataTools() {
+    return '<div class="card"><h2>' + t("dataTools") + '</h2><div class="stack">' +
+      '<button class="btn2" data-act="exportCsv">📤 ' + t("exportCsv") + '</button>' +
+      (state.demoBackup ? '<button class="btn-bad" data-act="demoClear">' + t("demoClear") + '</button>'
+        : '<button class="btn2" data-act="demoLoad">🧪 ' + t("demoLoad") + '</button>') +
+      '<div class="muted" style="font-size:12px">' + t("demoHint") + '</div></div></div>';
+  }
+
+  acts.fit = function () { refitModel(); toast(t("fitted")); render(); };
+
+  acts.exportCsv = function () {
+    var rows = ["time,type,lang,level,predicted_p,passed,score,mastery_after,title"];
+    state.history.forEach(function (h) {
+      rows.push([new Date(h.t).toISOString(), h.type, h.lang || "", h.level == null ? "" : h.level, h.p == null ? "" : h.p,
+        h.passed ? 1 : 0, h.score == null ? "" : h.score, h.m == null ? "" : h.m,
+        '"' + String(h.title || "").replace(/"/g, '""') + '"'].join(","));
+    });
+    var csv = rows.join("\n");
+    if (NA && NA.shareText) NA.shareText("learn2unlock_data.csv", csv); else console.log(csv);
+  };
+
+  // Демо-данные: смоделированный ребёнок, чтобы показать графики на защите. Явно помечены.
+  acts.demoLoad = function () {
+    state.demoBackup = JSON.stringify({ history: state.history, stats: state.stats, mastery: state.mastery, ktParams: state.ktParams, recent: state.recent });
+    var seed = 31337;
+    function r() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    // [p0, T, S, G] «настоящего» смоделированного ребёнка
+    var truth = { math: [.2, .07, .1, .1], logic: [.4, .06, .12, .25], read_aloud: [.55, .08, .08, .1], retell: [.1, .03, .15, .12],
+      typing: [.6, .12, .05, .08], writing: [.05, .02, .15, .08], language: [.2, .05, .12, .25] };
+    var known = {}, stats = defaults().stats, hist = [];
+    TYPES.forEach(function (x) { known[x] = r() < truth[x][0]; });
+    var start = Date.now() - 7 * 86400000;
+    for (var i = 0; i < 140; i++) {
+      var x = TYPES[Math.floor(r() * TYPES.length)], p = truth[x];
+      var ok = known[x] ? r() > p[2] : r() < p[3];
+      if (!known[x] && r() < p[1]) known[x] = true;
+      var st = stats[x]; st.total++; if (ok) st.passed++;
+      hist.push({ t: start + Math.floor(i * 7 * 86400000 / 140), type: x, lang: "ru", title: "demo", passed: ok, score: ok ? 90 : 30, demo: true });
+    }
+    state.history = hist; state.stats = stats; state.recent = [];
+    state.ktParams = {}; state.mastery = {};
+    refitModel();
+    var tr = KT.trace(hist, state.ktParams, TYPES);
+    // прогнозы для экспорта
+    var pL = {}; TYPES.forEach(function (x) { pL[x] = ktParam(x).p0; });
+    hist.forEach(function (h) {
+      var pr = ktParam(h.type);
+      h.p = Math.round(KT.predict(pL[h.type], pr) * 1000) / 1000;
+      pL[h.type] = KT.update(pL[h.type], h.passed, pr);
+      h.m = Math.round(pL[h.type] * 1000) / 1000;
+    });
+    TYPES.forEach(function (x) { state.stats[x].level = Math.max(1, Math.min(10, Math.round(2 + tr[x].mastery * 7))); });
+    save(); toast(t("demoLoaded")); render();
+  };
+  acts.demoClear = function () {
+    try {
+      var b = JSON.parse(state.demoBackup);
+      state.history = b.history; state.stats = b.stats; state.mastery = b.mastery; state.ktParams = b.ktParams; state.recent = b.recent;
+    } catch (e) { }
+    state.demoBackup = null; save(); render();
+  };
   acts.summary = function () {
     var box = $("sumBox");
     box.innerHTML = '<div class="spinner"></div>';

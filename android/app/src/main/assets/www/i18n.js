@@ -1,6 +1,15 @@
 // Тексты интерфейса на трёх языках: ru, kk, en
 var I18N = {
   ru: {
+    knowledgeMap: "Карта знаний", knowledgeMapHint: "Вероятность того, что навык освоен, по модели Bayesian Knowledge Tracing (BKT).",
+    masteryGrowth: "Рост освоения", attemptsShort: "попыток", activity7d: "Выполнено заданий за 7 дней",
+    modelQuality: "Качество модели прогноза", modelQualityHint: "Модель обучена на первых {train} попытках и проверена на последних {test}, которых она не видела.",
+    modelAcc: "Точность прогноза", baselineAcc: "Без модели", baselineHint: "базовый прогноз", needMoreData: "Нужно хотя бы 30 попыток для оценки (сейчас {n}).",
+    params: "Параметры модели", paramsHint: "p0 — начальное освоение, T — обучение за попытку, S — ошибка при знании, G — угадывание. ✓ — параметры подобраны по данным ребёнка.",
+    fitModel: "Обучить модель заново", fitted: "Модель обучена", dataTools: "Данные",
+    exportCsv: "Экспорт данных (CSV)", demoLoad: "Загрузить демо-данные", demoClear: "Удалить демо-данные и вернуть настоящие",
+    demoHint: "Демо-данные — смоделированный ребёнок для показа графиков. Это не результаты реальных детей.",
+    demoBanner: "Сейчас показаны ДЕМО-ДАННЫЕ (смоделированный ребёнок), а не реальные результаты.", demoLoaded: "Демо-данные загружены",
     provider: "Какой ИИ использовать",
     geminiKeyHint: "Бесплатный ключ: aistudio.google.com → Get API key. Бесплатный тариф имеет лимит запросов в день.",
     geminiPrivacy: "На бесплатном тарифе Google может использовать отправленные тексты (задания и ответы ребёнка) для улучшения своих продуктов. Не пишите в профиль лишних личных данных.",
@@ -74,6 +83,15 @@ var I18N = {
     history: "История", score: "Балл"
   },
   kk: {
+    knowledgeMap: "Білім картасы", knowledgeMapHint: "Bayesian Knowledge Tracing (BKT) моделі бойынша дағдының меңгерілу ықтималдығы.",
+    masteryGrowth: "Меңгерудің өсуі", attemptsShort: "әрекет", activity7d: "7 күнде орындалған тапсырмалар",
+    modelQuality: "Болжам моделінің сапасы", modelQualityHint: "Модель алғашқы {train} әрекетте оқытылып, ол көрмеген соңғы {test} әрекетте тексерілді.",
+    modelAcc: "Болжам дәлдігі", baselineAcc: "Модельсіз", baselineHint: "базалық болжам", needMoreData: "Бағалау үшін кемінде 30 әрекет керек (қазір {n}).",
+    params: "Модель параметрлері", paramsHint: "p0 — бастапқы меңгеру, T — бір әрекеттегі үйрену, S — білсе де қателесу, G — болжап табу. ✓ — параметрлер бала деректерімен таңдалған.",
+    fitModel: "Модельді қайта оқыту", fitted: "Модель оқытылды", dataTools: "Деректер",
+    exportCsv: "Деректерді экспорттау (CSV)", demoLoad: "Демо-деректерді жүктеу", demoClear: "Демо-деректерді жойып, нақтыларын қайтару",
+    demoHint: "Демо-деректер — графиктерді көрсетуге арналған модельденген бала. Бұл нақты балалардың нәтижесі емес.",
+    demoBanner: "Қазір нақты нәтижелер емес, ДЕМО-ДЕРЕКТЕР (модельденген бала) көрсетілуде.", demoLoaded: "Демо-деректер жүктелді",
     provider: "Қай ЖИ қолданылады",
     geminiKeyHint: "Тегін кілт: aistudio.google.com → Get API key. Тегін тарифте күндік сұраныс шегі бар.",
     geminiPrivacy: "Тегін тарифте Google жіберілген мәтіндерді (тапсырмалар мен баланың жауаптарын) өз өнімдерін жақсарту үшін пайдалануы мүмкін. Профильге артық жеке деректер жазбаңыз.",
@@ -147,6 +165,15 @@ var I18N = {
     history: "Тарих", score: "Балл"
   },
   en: {
+    knowledgeMap: "Knowledge map", knowledgeMapHint: "Probability that each skill is mastered, from the Bayesian Knowledge Tracing (BKT) model.",
+    masteryGrowth: "Mastery growth", attemptsShort: "attempts", activity7d: "Tasks completed, last 7 days",
+    modelQuality: "Prediction model quality", modelQualityHint: "Trained on the first {train} attempts and tested on the last {test}, which it never saw.",
+    modelAcc: "Prediction accuracy", baselineAcc: "Without model", baselineHint: "baseline", needMoreData: "At least 30 attempts are needed to evaluate (now {n}).",
+    params: "Model parameters", paramsHint: "p0 — initial mastery, T — learning per attempt, S — slip, G — guess. ✓ — fitted to this child's data.",
+    fitModel: "Retrain model", fitted: "Model trained", dataTools: "Data",
+    exportCsv: "Export data (CSV)", demoLoad: "Load demo data", demoClear: "Remove demo data and restore real data",
+    demoHint: "Demo data is a simulated child for showing the charts. These are not results from real children.",
+    demoBanner: "Showing DEMO DATA (a simulated child), not real results.", demoLoaded: "Demo data loaded",
     provider: "Which AI to use",
     geminiKeyHint: "Free key: aistudio.google.com → Get API key. The free tier has a daily request limit.",
     geminiPrivacy: "On the free tier Google may use the texts sent (tasks and the child's answers) to improve its products. Don't put unnecessary personal data in the profile.",
