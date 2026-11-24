@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Learn2Unlock AI</string>
+    <string name="accessibility_description">Learn2Unlock AI замечает, когда открывается заблокированное приложение, и показывает экран с заданием. Никакие данные с экрана не читаются и не передаются.</string>
+</resources>
