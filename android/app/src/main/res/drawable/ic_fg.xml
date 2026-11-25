@@ -1,11 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Эмблема A: открытый замок, корпус которого — раскрытая книга -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="6"
-        android:pathData="M42,52 L42,44 A12,12 0,0 1,66 44 L66,52" />
-    <path android:fillColor="#FFFFFF" android:pathData="M36,50 L72,50 L72,76 L36,76 Z" />
-    <path android:fillColor="#FBBF24" android:pathData="M54,55 L56.6,60.8 L62.8,60.8 L57.8,64.6 L59.6,70.6 L54,67 L48.4,70.6 L50.2,64.6 L45.2,60.8 L51.4,60.8 Z" />
+    <group
+        android:scaleX="0.38"
+        android:scaleY="0.38"
+        android:translateX="16"
+        android:translateY="15.62">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="13"
+            android:strokeLineCap="round"
+            android:pathData="M74,100 V66 A26,26 0 0,1 126,66 V78" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M40,100 C62,92 84,94 100,104 V162 C84,152 62,150 40,158 Z" />
+        <path
+            android:fillColor="#E0E7FF"
+            android:pathData="M160,100 C138,92 116,94 100,104 V162 C116,152 138,150 160,158 Z" />
+        <path
+            android:fillColor="#FBBF24"
+            android:pathData="M100,115 A9,9 0 1,1 99.99,115 Z" />
+        <path
+            android:fillColor="#FBBF24"
+            android:pathData="M95.5,128 L104.5,128 L107.5,146 L92.5,146 Z" />
+    </group>
 </vector>
